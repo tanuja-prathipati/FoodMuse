@@ -1,14 +1,17 @@
-
-
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from "axios";
 import { Plus, X } from "lucide-react";
 import { Navbar } from "./components/Navbar";
 import { UserProvider, useUser } from "./context/UserContext";
+import RecipeComponent from './components/RecipeComponent';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import { saveRecipeToDB, getSavedRecipesFromDB } from './components/indexedDB';
+// const API_KEY = "7027877e32824be4bf0f2a81e8ada389";
+// const API_KEY = "37e38fd0fd554ee19bfd50c08f600f4d"
 const API_KEY = "a7386e838ff4469b94c605428a122059";
 
 function IngredientInput({ onGenerateRecipes }: { onGenerateRecipes: (ingredients: string[]) => void }) {
@@ -32,7 +35,7 @@ function IngredientInput({ onGenerateRecipes }: { onGenerateRecipes: (ingredient
           type="text"
           value={currentIngredient}
           onChange={(e) => setCurrentIngredient(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && addIngredient()}
+          onKeyDown={(e) => e.key === "Enter" && addIngredient()}
           placeholder="Enter an ingredient..."
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
@@ -66,7 +69,7 @@ function FilterCard({
   onFilterDuration,
   onFilterDishTypes,
   onFilterCuisine
-}: { 
+}: {
   onFilterDuration: (duration: string) => void;
   onFilterDishTypes: (selectedDishTypes: string[]) => void;
   onFilterCuisine: (selectedCuisine: string) => void;
@@ -75,16 +78,16 @@ function FilterCard({
   const [selectedCuisine, setSelectedCuisine] = useState<string>("");
 
   const dishTypes = [
-    "main course", "side dish", "dessert", "appetizer", "salad", "bread", 
-    "breakfast", "soup", "beverage", "sauce", "marinade", "fingerfood", 
+    "main course", "side dish", "dessert", "appetizer", "salad", "bread",
+    "breakfast", "soup", "beverage", "sauce", "marinade", "fingerfood",
     "snack", "drink"
   ];
 
   const cuisines = [
-    "African", "Asian", "American", "British", "Cajun", "Caribbean", 
-    "Chinese", "Eastern European", "European", "French", "German", "Greek", 
-    "Indian", "Irish", "Italian", "Japanese", "Jewish", "Korean", "Latin American", 
-    "Mediterranean", "Mexican", "Middle Eastern", "Nordic", "Southern", "Spanish", 
+    "African", "Asian", "American", "British", "Cajun", "Caribbean",
+    "Chinese", "Eastern European", "European", "French", "German", "Greek",
+    "Indian", "Irish", "Italian", "Japanese", "Jewish", "Korean", "Latin American",
+    "Mediterranean", "Mexican", "Middle Eastern", "Nordic", "Southern", "Spanish",
     "Thai", "Vietnamese"
   ];
 
@@ -110,75 +113,75 @@ function FilterCard({
 
   return (
     <div className="bg-white p-8 mb-6 w-full mx-auto">
-  <h2 className="text-2xl font-semibold mb-4">Filter Recipes</h2>
+      <h2 className="text-2xl font-semibold mb-4">Filter Recipes</h2>
 
-  <div className="flex justify-between mb-6 w-full">
-    {/* Left side: Duration Dropdown */}
-    <div className="w-1/2 pr-4">
-      <p className="text-sm text-gray-600 mb-4">Choose your preferred cooking duration:</p>
-      <select
-        onChange={(e) => onFilterDuration(e.target.value)}
-        className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-700"
-      >
-        <option value="">Select Duration</option>
-        <option value="under20">Under 20 minutes</option>
-        <option value="above20">Above 20 minutes</option>
-      </select>
-    </div>
-
-    {/* Right side: Cuisine Dropdown */}
-    <div className="w-1/2 pl-4">
-      <p className="text-sm text-gray-600 mb-4">Select Cuisine:</p>
-      <select
-        value={selectedCuisine}
-        onChange={(e) => handleCuisineChange(e.target.value)}
-        className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-700"
-      >
-        <option value="">Select Cuisine</option>
-        {cuisines.map((cuisine) => (
-          <option key={cuisine} value={cuisine}>{cuisine}</option>
-        ))}
-      </select>
-    </div>
-  </div>
-
-  {/* Dish Type Section */}
-  <div className="mt-6 w-full">
-    <p className="text-sm text-gray-600 mb-2">Select Dish Types:</p>
-    <div className="flex flex-wrap gap-6 mb-6 w-full">
-      {dishTypes.map((dishType) => (
-        <div key={dishType} className="flex items-center">
-          <input
-            type="checkbox"
-            id={dishType}
-            checked={selectedDishTypes.includes(dishType)}
-            onChange={() => handleDishTypeChange(dishType)}
-            className="h-5 w-5 text-emerald-600 border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 transition-all"
-          />
-          <label htmlFor={dishType} className="ml-3 text-gray-700">{dishType}</label>
+      <div className="flex justify-between mb-6 w-full">
+        {/* Left side: Duration Dropdown */}
+        <div className="w-1/2 pr-4">
+          <p className="text-sm text-gray-600 mb-4">Choose your preferred cooking duration:</p>
+          <select
+            onChange={(e) => onFilterDuration(e.target.value)}
+            className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-700"
+          >
+            <option value="">Select Duration</option>
+            <option value="under20">Under 20 minutes</option>
+            <option value="above20">Above 20 minutes</option>
+          </select>
         </div>
-      ))}
+
+        {/* Right side: Cuisine Dropdown */}
+        <div className="w-1/2 pl-4">
+          <p className="text-sm text-gray-600 mb-4">Select Cuisine:</p>
+          <select
+            value={selectedCuisine}
+            onChange={(e) => handleCuisineChange(e.target.value)}
+            className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-700"
+          >
+            <option value="">Select Cuisine</option>
+            {cuisines.map((cuisine) => (
+              <option key={cuisine} value={cuisine}>{cuisine}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Dish Type Section */}
+      <div className="mt-6 w-full">
+        <p className="text-sm text-gray-600 mb-2">Select Dish Types:</p>
+        <div className="flex flex-wrap gap-6 mb-6 w-full">
+          {dishTypes.map((dishType) => (
+            <div key={dishType} className="flex items-center">
+              <input
+                type="checkbox"
+                id={dishType}
+                checked={selectedDishTypes.includes(dishType)}
+                onChange={() => handleDishTypeChange(dishType)}
+                className="h-5 w-5 text-emerald-600 border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+              <label htmlFor={dishType} className="ml-3 text-gray-700">{dishType}</label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className="mt-6 text-center w-full">
+        <button
+          onClick={handleApplyFilter}
+          className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+        >
+          Apply Filters
+        </button>
+        <button
+          onClick={() => { setSelectedDishTypes([]); setSelectedCuisine(""); onFilterDishTypes([]); onFilterCuisine(""); }}
+          className="ml-4 text-sm text-emerald-600 hover:text-emerald-800 focus:outline-none transition-colors"
+        >
+          Reset Filter
+        </button>
+      </div>
     </div>
-  </div>
 
-  {/* Buttons */}
-  <div className="mt-6 text-center w-full">
-    <button
-      onClick={handleApplyFilter}
-      className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-    >
-      Apply Filters
-    </button>
-    <button
-      onClick={() => { setSelectedDishTypes([]); setSelectedCuisine(""); onFilterDishTypes([]); onFilterCuisine(""); }}
-      className="ml-4 text-sm text-emerald-600 hover:text-emerald-800 focus:outline-none transition-colors"
-    >
-      Reset Filter
-    </button>
-  </div>
-</div>
 
-  
   );
 }
 
@@ -193,8 +196,37 @@ function AppContent() {
   const [selectedDishTypes, setSelectedDishTypes] = useState<string[]>([]);
   const [selectedCuisine, setSelectedCuisine] = useState<string>("");
 
+  const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
 
-  
+  useEffect(() => {
+    // Load recipes from IndexedDB when the component mounts
+    async function fetchRecipes() {
+      const recipes = await getSavedRecipesFromDB();
+      setSavedRecipes(recipes);
+    }
+    fetchRecipes();
+  }, []);
+
+  useEffect(() => {
+    (window as any).saveRecipe = async (recipe: any) => {
+
+      const isRecipeSaved = savedRecipes.some(savedRecipe => savedRecipe.id === recipe.id);
+
+      if (!isRecipeSaved) {
+        const updatedRecipes = [...savedRecipes, recipe];
+        setSavedRecipes(updatedRecipes);
+
+        await saveRecipeToDB(recipe);
+      } else {
+        console.log('Recipe already saved:', recipe.title);
+      }
+    };
+
+    return () => {
+      delete (window as any).saveRecipe;
+    };
+  }, [savedRecipes]);
+
   const handleLogin = (email: string) => {
     if (tempRegistrationData && tempRegistrationData.email === email) {
       setUser(tempRegistrationData);
@@ -309,8 +341,8 @@ function AppContent() {
   };
 
 
-  
-  
+
+
   const openRecipeInNewTab = async (recipe: any) => {
     try {
       const response = await axios.get(
@@ -434,6 +466,31 @@ function AppContent() {
                 .back-button:hover {
                   background-color: #047857;
                 }
+                  .button-container {
+                  margin-top: 20px;
+                  display: flex;
+                  gap: 10px;
+                  justify-content: center;
+                }
+                .back-button, .save-button {
+                  padding: 10px 20px;
+                  border-radius: 5px;
+                  text-decoration: none;
+                  font-size: 1rem;
+                  display: inline-block;
+                  transition: background-color 0.3s;
+                }
+                .back-button {
+                  background-color: #047857;
+                  color: white;
+                }
+                .save-button {
+                  background-color: #10b981;
+                  color: white;
+                }
+                .back-button:hover, .save-button:hover {
+                  opacity: 0.9;
+                }
               </style>
             </head>
             <body>
@@ -454,9 +511,20 @@ function AppContent() {
                   <p>${response.data.instructions}</p>
                   <h2>Recipe Card:</h2>
                   <img src="${cardResponse.data.url}" alt="Recipe Card" class="recipe-card"/>
-                  <a href="javascript:window.close();" class="back-button">Close</a>
+                  <div class="button-container">
+                    <a href="javascript:window.close();" class="back-button">Close</a>
+                    <a href="javascript:void(0);" id="save-recipe" class="save-button">Save Recipe</a>
+                  </div>
                 </div>
               </div>
+              <script>
+                document.getElementById('save-recipe').addEventListener('click', function() {
+                  const recipeData = ${JSON.stringify(response.data)};
+                  // window.saveRecipe(recipeData);
+                  window.opener.saveRecipe(recipeData);
+                  alert('Recipe saved successfully!');
+                });
+              </script>
             </body>
           </html>
         `);
@@ -469,27 +537,25 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar username={user?.fullName} onLogout={() => setUser(null)} />
+      <Navbar username={user?.fullName} onLogout={() => setUser(null)} savedRecipesCount={savedRecipes.length} />
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome to Food Muse!</h1>
           <p className="text-lg text-gray-600">Enter your ingredients and let's create something delicious</p>
         </div>
-  
+
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-semibold  mb-4">What's in your kitchen?</h2>
           <IngredientInput onGenerateRecipes={fetchRecipes} />
           <FilterCard
-  onFilterDuration={filterRecipesByDuration}
-  onFilterDishTypes={filterRecipesByDishTypes}
-  onFilterCuisine={filterRecipesByCuisine} // Pass cuisine filter handler
-/>
+            onFilterDuration={filterRecipesByDuration}
+            onFilterDishTypes={filterRecipesByDishTypes}
+            onFilterCuisine={filterRecipesByCuisine} // Pass cuisine filter handler
+          />
 
-
-  
           {loading && <p className="text-emerald-600">Loading recipes...</p>}
           {error && <p className="text-red-600">{error}</p>}
-  
+
           <div className="mt-6">
             {filteredRecipes.length > 0 && (
               <div>
@@ -520,7 +586,7 @@ function AppContent() {
                         <p>Calories: {recipe.nutrition.calories}</p>
                         <p>Carbs: {recipe.nutrition.carbs}</p>
                         <p>Protein: {recipe.nutrition.protein}</p>
-                        
+
                       </div>
                     </div>
                   ))}
@@ -536,9 +602,14 @@ function AppContent() {
 
 function App() {
   return (
-    <UserProvider>
-      <AppContent />
-    </UserProvider>
+    <Router>
+      <UserProvider>
+        <Routes>
+          <Route path="/" element={<AppContent />} />
+          <Route path="/saved-recipes" element={<RecipeComponent />} />
+        </Routes>
+      </UserProvider>
+    </Router>
   );
 }
 

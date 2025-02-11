@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ChefHat, Heart, Home, Info, LogOut, User } from 'lucide-react';
 
 interface NavbarProps {
@@ -15,18 +16,22 @@ export function Navbar({ username, onLogout }: NavbarProps) {
             <ChefHat className="w-8 h-8" />
             <span className="text-xl font-bold">Food Muse</span>
           </div>
-          
+
           <div className="flex items-center space-x-8">
-            <NavLink icon={<Home className="w-5 h-5" />} text="Home" />
-            <NavLink icon={<Info className="w-5 h-5" />} text="About" />
-            <NavLink icon={<Heart className="w-5 h-5" />} text="Saved Recipes" />
-            
+            <NavLink to="/" icon={<Home className="w-5 h-5" />} text="Home" />
+            <NavLink to="/about" icon={<Info className="w-5 h-5" />} text="About" />
+            <NavLink
+              to="/saved-recipes"
+              icon={<Heart className="w-5 h-5" />}
+              text="Saved Recipes"
+            />
+
             <div className="relative group">
               <button className="flex items-center space-x-2 hover:text-emerald-200">
                 <User className="w-5 h-5" />
                 <span>{username || 'Profile'}</span>
               </button>
-              
+
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
                 <button
                   onClick={onLogout}
@@ -44,11 +49,22 @@ export function Navbar({ username, onLogout }: NavbarProps) {
   );
 }
 
-function NavLink({ icon, text }: { icon: React.ReactNode; text: string }) {
+interface NavLinkProps {
+  to: string;
+  icon: React.ReactNode;
+  text: string;
+}
+
+function NavLink({ to, icon, text }: NavLinkProps) {
   return (
-    <a href="#" className="flex items-center space-x-1 hover:text-emerald-200">
+    <Link
+      to={to}
+      className="flex items-center space-x-1 hover:text-emerald-200"
+    >
       {icon}
       <span>{text}</span>
-    </a>
+    </Link>
   );
 }
+
+export default Navbar;
