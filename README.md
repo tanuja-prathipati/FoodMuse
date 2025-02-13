@@ -1,6 +1,6 @@
 # FoodMuse
 
-FoodMuse is a recipe finder application that allows users to get recipes based on the ingredients they already have at home. The app uses React and React Router for seamless navigation and user experience.
+Food Muse is a React-based recipe generator that suggests dishes based on available ingredients. It features user authentication, saved recipes, and filters for cuisines and dish types.
 
 ## Features
 - Search for recipes using the ingredients you have.
