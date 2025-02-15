@@ -12,7 +12,7 @@ import { Register } from './components/Register';
 import { saveRecipeToDB, getSavedRecipesFromDB } from './components/indexedDB';
 // const API_KEY = "7027877e32824be4bf0f2a81e8ada389";
 // const API_KEY = "37e38fd0fd554ee19bfd50c08f600f4d"
-const API_KEY = "a7386e838ff4469b94c605428a122059";
+const API_KEY = "ce57e19380804d16aec9f5a2674c729f";
 
 function IngredientInput({ onGenerateRecipes }: { onGenerateRecipes: (ingredients: string[]) => void }) {
   const [ingredients, setIngredients] = useState<string[]>([]);
@@ -452,45 +452,32 @@ function AppContent() {
                 .recipe-details ul {
                   margin-top: 20px;
                 }
-                .back-button {
-                  margin-top: 20px;
-                  padding: 10px 20px;
-                  background-color: #047857;
-                  color: white;
-                  border-radius: 5px;
-                  text-decoration: none;
-                  font-size: 1rem;
-                  display: inline-block;
-                  transition: background-color 0.3s;
-                }
-                .back-button:hover {
-                  background-color: #047857;
-                }
-                  .button-container {
-                  margin-top: 20px;
-                  display: flex;
-                  gap: 10px;
-                  justify-content: center;
-                }
-                .back-button, .save-button {
-                  padding: 10px 20px;
-                  border-radius: 5px;
-                  text-decoration: none;
-                  font-size: 1rem;
-                  display: inline-block;
-                  transition: background-color 0.3s;
-                }
-                .back-button {
-                  background-color: #047857;
-                  color: white;
-                }
-                .save-button {
-                  background-color: #10b981;
-                  color: white;
-                }
-                .back-button:hover, .save-button:hover {
-                  opacity: 0.9;
-                }
+                .button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #047857;
+    color: white;
+    border: none;  /* Remove border for consistency */
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 1rem;
+    display: inline-block;
+    transition: background-color 0.3s;
+    cursor: pointer;  /* Ensure buttons have pointer cursor */
+}
+
+.button:hover {
+    background-color: #065f46;
+}
+
+.button-container {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+               
               </style>
             </head>
             <body>
@@ -512,11 +499,14 @@ function AppContent() {
                   <h2>Recipe Card:</h2>
                   <img src="${cardResponse.data.url}" alt="Recipe Card" class="recipe-card"/>
                   <div class="button-container">
-                    <a href="javascript:window.close();" class="back-button">Close</a>
-                    <a href="javascript:void(0);" id="save-recipe" class="save-button">Save Recipe</a>
-                  </div>
-                </div>
+                <a href="javascript:window.close();" class="button">Close</a>
+                <button id="save-recipe" class="button">Save Recipe</button>
+                <button id="leftover-food" class="button">Leftover Food</button>
               </div>
+              <div id="leftover-recipe" class="leftover-recipe" style="display: none;"></div>
+            </div>
+          </div>
+
               <script>
                 document.getElementById('save-recipe').addEventListener('click', function() {
                   const recipeData = ${JSON.stringify(response.data)};
@@ -524,7 +514,36 @@ function AppContent() {
                   window.opener.saveRecipe(recipeData);
                   alert('Recipe saved successfully!');
                 });
-              </script>
+
+              document.getElementById('leftover-food').addEventListener('click', async function() {
+  const leftoverContainer = document.getElementById('leftover-recipe');
+  leftoverContainer.innerHTML = "<p>Generating leftover recipe...</p>";
+  leftoverContainer.style.display = "block";
+
+  try {
+    const geminiResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyBxsKblg9RCQB742H-bNE_QGuEi1amM_aY", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: "I made '${response.data.title}' with these ingredients: ${response.data.extendedIngredients.map(i => i.original).join(', ')}. Instructions: ${response.data.instructions}. Now '${response.data.title}' is remaining. Can you suggest a new dish ?  by modifying '${response.data.title}' with detailed steps? becuase i dont want to waste the dish in the bin"
+          }]
+        }]
+      })
+    });
+
+    const geminiData = await geminiResponse.json();
+    leftoverContainer.innerHTML = "<h2>Leftover Recipe:</h2><p>" + (geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Could not generate a recipe.") + "</p>";
+  } catch (error) {
+    leftoverContainer.innerHTML = "<p>Failed to generate leftover recipe. Please try again.</p>";
+  }
+});
+</script>
+
+
             </body>
           </html>
         `);
