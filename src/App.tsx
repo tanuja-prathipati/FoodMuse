@@ -10,20 +10,13 @@ import RecipeComponent from './components/RecipeComponent';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { saveRecipeToDB, getSavedRecipesFromDB } from './components/indexedDB';
+import { HealthRecipes } from "./components/HealthRecipes"; // Import the new component
+
 
 
 const API_KEY = "7027877e32824be4bf0f2a81e8ada389";
  //const API_KEY = "37e38fd0fd554ee19bfd50c08f600f4d"
 //const API_KEY = "ce57e19380804d16aec9f5a2674c729f";
-
-const userHealthProfile = {
-  height: "170cm",
-  weight: "65kg",
-  dietaryPreferences: ["vegetarian", "dairyFree", "lowCarb"],
-  // healthConditions: ["diabetes", "high_bp", "heart_disease", "low_bp"],
-  healthConditions: ["diabetes", "heart_disease"],
-  fitnessGoal: "Lose Weight"
-};
 
 
 function IngredientInput({ onGenerateRecipes }: { onGenerateRecipes: (ingredients: string[]) => void }) {
@@ -217,7 +210,6 @@ function AppContent() {
     async function fetchRecipes() {
       const recipes = await getSavedRecipesFromDB();
       setSavedRecipes(recipes);
-      fetchHealthBasedRecipes(); 
     }
   
     fetchRecipes();
@@ -317,45 +309,6 @@ function AppContent() {
       setFilteredRecipes(recipesWithNutrition);
     } catch (err) {
       setError("Failed to fetch recipes. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch health-based recipes
-  const fetchHealthBasedRecipes = async () => {
-    setLoading(true);
-    setError(null);
-
-    const nutrientConstraints: Record<string, any> = {
-      diabetes: { minSugar: 5 },
-      high_bp: { maxSodium: 500 },
-      heart_disease: { maxSaturatedFat: 5 },
-      low_bp: { minSodium: 300 }
-    };
-
-    let nutrientParams: Record<string, any> = {};
-    userHealthProfile.healthConditions.forEach(condition => {
-      if (nutrientConstraints[condition]) {
-        nutrientParams = { ...nutrientParams, ...nutrientConstraints[condition] };
-      }
-    });
-
-    try {
-      const response = await axios.get(
-        "https://api.spoonacular.com/recipes/complexSearch",
-        {
-          params: {
-            apiKey: API_KEY,
-            number: 10,
-            diet: userHealthProfile.dietaryPreferences.join(","),
-            ...nutrientParams
-          }
-        }
-      );
-      setHealthRecipes(response.data.results);
-    } catch (err) {
-      setError("Failed to fetch health-based recipes. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -627,31 +580,7 @@ function AppContent() {
           {loading && <p className="text-emerald-600">Loading recipes...</p>}
           {error && <p className="text-red-600">{error}</p>}
 
-          <div className="mt-6">
-            {healthRecipes.length > 0 && (
-              <div>
-                <h3 className="text-2xl font-semibold mb-4">Recipes According to Your Health:</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {healthRecipes.map((recipe) => (
-                    <div
-                      key={recipe.id}
-                      className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-4 cursor-pointer"
-                      onClick={() => openRecipeInNewTab(recipe)}
-                    >
-                      <img
-                        src={recipe.image}
-                        alt={recipe.title}
-                        className="w-full h-40 object-cover rounded-md mb-4"
-                      />
-                      <h4 className="font-semibold text-lg mb-2">{recipe.title}</h4>
-                     
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
+         
 
 
           <div className="mt-6">
@@ -705,6 +634,8 @@ function App() {
         <Routes>
           <Route path="/" element={<AppContent />} />
           <Route path="/saved-recipes" element={<RecipeComponent />} />
+          <Route path="/health-recipes" element={<HealthRecipes />} /> 
+
         </Routes>
       </UserProvider>
     </Router>
