@@ -20,6 +20,11 @@ export function Navbar({ username, onLogout }: NavbarProps) {
           <div className="flex items-center space-x-8">
             <NavLink to="/" icon={<Home className="w-5 h-5" />} text="Home" />
             <NavLink to="/about" icon={<Info className="w-5 h-5" />} text="About" />
+            <NavLink to="/health-recipes" icon={<Heart className="w-5 h-5" />}
+text="Health" />
+
+
+
             <NavLink
               to="/saved-recipes"
               icon={<Heart className="w-5 h-5" />}
