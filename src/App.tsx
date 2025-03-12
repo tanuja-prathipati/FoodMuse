@@ -10,9 +10,21 @@ import RecipeComponent from './components/RecipeComponent';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { saveRecipeToDB, getSavedRecipesFromDB } from './components/indexedDB';
-// const API_KEY = "7027877e32824be4bf0f2a81e8ada389";
-// const API_KEY = "37e38fd0fd554ee19bfd50c08f600f4d"
-const API_KEY = "ce57e19380804d16aec9f5a2674c729f";
+
+
+const API_KEY = "7027877e32824be4bf0f2a81e8ada389";
+ //const API_KEY = "37e38fd0fd554ee19bfd50c08f600f4d"
+//const API_KEY = "ce57e19380804d16aec9f5a2674c729f";
+
+const userHealthProfile = {
+  height: "170cm",
+  weight: "65kg",
+  dietaryPreferences: ["vegetarian", "dairyFree", "lowCarb"],
+  // healthConditions: ["diabetes", "high_bp", "heart_disease", "low_bp"],
+  healthConditions: ["diabetes", "heart_disease"],
+  fitnessGoal: "Lose Weight"
+};
+
 
 function IngredientInput({ onGenerateRecipes }: { onGenerateRecipes: (ingredients: string[]) => void }) {
   const [ingredients, setIngredients] = useState<string[]>([]);
@@ -195,18 +207,22 @@ function AppContent() {
   const [filteredRecipes, setFilteredRecipes] = useState<any[]>([]);
   const [selectedDishTypes, setSelectedDishTypes] = useState<string[]>([]);
   const [selectedCuisine, setSelectedCuisine] = useState<string>("");
+  const [healthRecipes, setHealthRecipes] = useState<any[]>([]);
+
 
   const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
 
+  
   useEffect(() => {
-    // Load recipes from IndexedDB when the component mounts
     async function fetchRecipes() {
       const recipes = await getSavedRecipesFromDB();
       setSavedRecipes(recipes);
+      fetchHealthBasedRecipes(); 
     }
+  
     fetchRecipes();
   }, []);
-
+  
   useEffect(() => {
     (window as any).saveRecipe = async (recipe: any) => {
 
@@ -256,7 +272,7 @@ function AppContent() {
     );
   }
 
-  const fetchRecipes = async (ingredients: string[]) => {
+   const fetchRecipes = async (ingredients: string[]) => {
     if (ingredients.length === 0) {
       setError("Please enter at least one ingredient.");
       return;
@@ -275,19 +291,16 @@ function AppContent() {
           },
         }
       );
+
       const recipePromises = response.data.map(async (recipe: any) => {
         const nutrition = await axios.get(
           `https://api.spoonacular.com/recipes/${recipe.id}/nutritionWidget.json`,
-          {
-            params: { apiKey: API_KEY },
-          }
+          { params: { apiKey: API_KEY } }
         );
 
         const detailedRecipe = await axios.get(
           `https://api.spoonacular.com/recipes/${recipe.id}/information`,
-          {
-            params: { apiKey: API_KEY },
-          }
+          { params: { apiKey: API_KEY } }
         );
 
         return {
@@ -295,15 +308,54 @@ function AppContent() {
           nutrition: nutrition.data,
           cookingTime: detailedRecipe.data.cookingMinutes || detailedRecipe.data.readyInMinutes,
           dishTypes: detailedRecipe.data.dishTypes || [],
-          cuisines: detailedRecipe.data.cuisines || [] // Added cuisine data
+          cuisines: detailedRecipe.data.cuisines || []
         };
       });
 
       const recipesWithNutrition = await Promise.all(recipePromises);
       setRecipes(recipesWithNutrition);
-      setFilteredRecipes(recipesWithNutrition); // Set filtered recipes initially
+      setFilteredRecipes(recipesWithNutrition);
     } catch (err) {
       setError("Failed to fetch recipes. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch health-based recipes
+  const fetchHealthBasedRecipes = async () => {
+    setLoading(true);
+    setError(null);
+
+    const nutrientConstraints: Record<string, any> = {
+      diabetes: { minSugar: 5 },
+      high_bp: { maxSodium: 500 },
+      heart_disease: { maxSaturatedFat: 5 },
+      low_bp: { minSodium: 300 }
+    };
+
+    let nutrientParams: Record<string, any> = {};
+    userHealthProfile.healthConditions.forEach(condition => {
+      if (nutrientConstraints[condition]) {
+        nutrientParams = { ...nutrientParams, ...nutrientConstraints[condition] };
+      }
+    });
+
+    try {
+      const response = await axios.get(
+        "https://api.spoonacular.com/recipes/complexSearch",
+        {
+          params: {
+            apiKey: API_KEY,
+            number: 10,
+            diet: userHealthProfile.dietaryPreferences.join(","),
+            ...nutrientParams
+          }
+        }
+      );
+      setHealthRecipes(response.data.results);
+    } catch (err) {
+      setError("Failed to fetch health-based recipes. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -574,6 +626,35 @@ function AppContent() {
 
           {loading && <p className="text-emerald-600">Loading recipes...</p>}
           {error && <p className="text-red-600">{error}</p>}
+
+          <div className="mt-6">
+            {healthRecipes.length > 0 && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Recipes According to Your Health:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {healthRecipes.map((recipe) => (
+                    <div
+                      key={recipe.id}
+                      className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-4 cursor-pointer"
+                      onClick={() => openRecipeInNewTab(recipe)}
+                    >
+                      <img
+                        src={recipe.image}
+                        alt={recipe.title}
+                        className="w-full h-40 object-cover rounded-md mb-4"
+                      />
+                      <h4 className="font-semibold text-lg mb-2">{recipe.title}</h4>
+                      <p className="text-sm text-gray-600">
+                        Cooking time: {recipe.readyInMinutes ? `${recipe.readyInMinutes} minutes` : "Not available"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+
 
           <div className="mt-6">
             {filteredRecipes.length > 0 && (
