@@ -644,9 +644,7 @@ function AppContent() {
                         className="w-full h-40 object-cover rounded-md mb-4"
                       />
                       <h4 className="font-semibold text-lg mb-2">{recipe.title}</h4>
-                      <p className="text-sm text-gray-600">
-                        Cooking time: {recipe.readyInMinutes ? `${recipe.readyInMinutes} minutes` : "Not available"}
-                      </p>
+                 
                     </div>
                   ))}
                 </div>
